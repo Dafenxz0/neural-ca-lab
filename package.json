@@ -1,0 +1,11 @@
+{
+  "name": "neural-ca-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Interactive WebGL2 Lenia & self-regenerating morphogenetic Neural Cellular Automata",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node --check src/gl.js && node --check src/math.js && node --check src/shaders.js && node --check src/nca_weights.js && node --check src/presets.js && node --check src/main.js"
+  }
+}
