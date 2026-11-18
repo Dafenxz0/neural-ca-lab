@@ -1,55 +1,89 @@
+<p align="center">
+  <img src="assets/readme/hero.svg" alt="neural-ca-lab — project visual identity" width="100%" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/Dafenxz0/neural-ca-lab/actions/workflows/ci.yml"><img alt="GitHub Actions CI" src="https://github.com/Dafenxz0/neural-ca-lab/actions/workflows/ci.yml/badge.svg" /></a>
+  <a href="https://dafenxz0.github.io/neural-ca-lab/"><img alt="Live demo" src="https://img.shields.io/badge/Live_Demo-Open_in_browser-1b3441?style=flat&logo=github" /></a>
+</p>
+
 # Neural-CA Lab
 
-[![CI & Deploy GitHub Pages](https://github.com/Dafenxz0/neural-ca-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/Dafenxz0/neural-ca-lab/actions/workflows/ci.yml)
+### A computational microscope for artificial life.
 
-**Live Demo:** [https://dafenxz0.github.io/neural-ca-lab/](https://dafenxz0.github.io/neural-ca-lab/)
+A zero-build WebGL2 experiment bringing together **Lenia continuous cellular automata** and an **8-channel self-healing neural cellular automaton**. Paint cells, slice structures apart, vary the growth rules, and watch local updates create global behavior.
 
-An interactive WebGL2 GPU **Lenia Continuous Cellular Automata** & **Self-Healing Morphogenetic Neural Cellular Automata** laboratory running at 60 FPS in the browser with zero build step or runtime dependencies.
+<p align="center"><a href="https://dafenxz0.github.io/neural-ca-lab/"><strong>OPEN THE LIVE LAB</strong></a></p>
 
-## Features
+![Two GPU simulation paths](assets/readme/architecture.svg)
 
-- **Dual GPU Simulation Engines (WebGL2 Ping-Pong `RGBA16F` + MRT)**
-  - **Lenia Continuous CA**: Multi-shell concentric ring-kernel convolution ($R \le 18$, $\beta \in \mathbb{R}^3$) paired with Gaussian growth mapping producing self-propelling solitons (**Orbium Gliders**), budding membranes (**Hydrogeminium**), and oscillating wave colonies (**Synapsia Gyre**).
-  - **Self-Healing Morphogenetic Neural CA**: 8-channel Multiple Render Target (`COLOR_ATTACHMENT0` + `COLOR_ATTACHMENT1`) state grid with Identity, Sobel-X, Sobel-Y, and 9-point Laplacian perception ($32 \to 20 \text{ ReLU} \to 8$ residual MLP) trained with damage augmentation (**Planarian NCA**, **Cryo-Lotus NCA**).
-- **Interactive Micromanipulator**
-  - **Seed / Spawn**: Plant new Lenia solitons or single-pixel Neural CA seeds anywhere on the toroidal manifold.
-  - **Slice / Damage**: Carve chunks out of living organisms and watch Neural CA specimens regenerate missing organs or Lenia colonies split and re-equilibrate.
-- **DNA / Kernel Mutator & Optics**
-  - Real-time sliders for growth center $\mu$, width $\sigma$, integration step $dt$, brush radius, 5 scientific false-color/RGB palettes, pause/step/reset, and keyboard shortcuts (`Space`, `S`, `R`, `H`, `1–5`, `[`, `]`).
+## Two different models of emergence
 
-## Math & Shader Overview
+| | Lenia | Neural CA |
+| --- | --- | --- |
+| State | Continuous scalar activity | 8 channels in two RGBA16F textures |
+| Update | Multi-shell ring convolution + Gaussian growth | Identity, Sobel X/Y and Laplacian features → `32 → 20 → 8` MLP |
+| Behavior | Mobile solitons and wave colonies | Learned regeneration after damage |
+| Examples | Orbium, Hydrogeminium, Synapsia | Planarian, Cryo-Lotus |
 
-### 1. Lenia (`LENIA_FS`)
-For state field $A(x,y) \in [0,1]$, concentric ring kernel $K(r) = \sum_i \beta_i \exp\!\left(4 - \frac{4}{4 r_i (1 - r_i)}\right)$ normalized to $\sum K = 1$:
+Both engines run GPU fragment shaders, using **ping-pong floating-point textures** to read the previous state and write the next state. The Neural CA uses multiple render targets for its 8 channels.
 
-$$U = K * A, \qquad G(U; \mu, \sigma) = 2 \exp\!\left(-\frac{(U - \mu)^2}{2\sigma^2}\right) - 1, \qquad A^{t+dt} = \mathrm{clamp}\!\left(A^t + dt \cdot G(U),\, 0,\, 1\right)$$
+## Explore the laboratory
 
-### 2. Self-Healing Morphogenetic Neural CA (`NCA_FS`)
-Each cell stores 8 channels across two `RGBA16F` textures (`[R, G, B, A]` and 4 hidden morphogen channels `[h4..h7]`). At each step, active cells ($\max_{3\times 3} \alpha > \text{threshold}$) perceive 32 local features via discrete `Identity`, `Sobel-X`, `Sobel-Y`, and `9-point Laplacian` stencils, pass them through a trained 2-layer MLP (`32 -> 20 ReLU -> 8`), and apply stochastic residual updates ($p = 0.5$).
+**[Open Neural-CA Lab →](https://dafenxz0.github.io/neural-ca-lab/)**
 
-## Project Structure
+1. Pick one of the **five presets** and start the simulation.
+2. Use **Seed / Spawn** to add new activity.
+3. Switch to **Slice / Damage**, remove part of an organism and observe what happens.
+4. Change the growth center `μ`, width `σ`, step size `dt`, brush radius and palette.
 
-```text
-index.html                  Full-bleed WebGL2 microscope viewport & HUD
-styles.css                  Dark laboratory monospace UI styling
-src/
-  gl.js                     WebGL2 context, RGBA16F ping-pong FBOs, 32x32 mass readback
-  math.js                   Kernel builders, CPU reference steppers, weight packer, validator
-  shaders.js                GLSL ES 3.00 shaders (Lenia, MRT NCA, Brush, Display, Mass)
-  nca_weights.js            Trained 32->20->8 weights for Planarian & Cryo-Lotus
-  presets.js                5 curated specimens & toroidal seed generators
-  main.js                   Simulation loop, pointer micromanipulator, keyboard & HUD bindings
-tests/
-  neural_ca.test.js         Node.js test suite (bounds, Lenia glider motion, NCA regeneration, GLSL sanity)
-```
+| Shortcut | Action |
+| --- | --- |
+| `Space` | Pause / resume |
+| `S` | Single step |
+| `R` | Reset |
+| `H` | Toggle help |
+| `1`–`5` | Choose specimen preset |
+| `[` / `]` | Adjust brush radius |
 
-## Local Development & Tests
+## The rules underneath
+
+### Lenia: convolution and growth
+
+The state `A(x,y)` is updated from a neighborhood potential `U = K * A`, where `K` is a normalized radial kernel:
+
+$$
+G(U;\mu,\sigma)=2\exp\left(-\frac{(U-\mu)^2}{2\sigma^2}\right)-1,
+\qquad A_{t+dt}=\operatorname{clamp}(A_t+dt\,G(U),0,1).
+$$
+
+### Neural CA: perceive, update, repair
+
+Each active cell perceives 32 local features using four stencil families: identity, horizontal/vertical Sobel and 9-point Laplacian. A trained `32 → 20 ReLU → 8` network predicts a residual state update. Stochastic updates use `p = 0.5`; damage augmentation during training is what enables the self-healing demonstrations.
+
+## Run locally
+
+This is a static ES-module project. A local web server is sufficient.
 
 ```bash
-# Run ES module syntax checks and unit/simulation tests (Node.js >= 20)
+git clone https://github.com/Dafenxz0/neural-ca-lab.git
+cd neural-ca-lab
 npm run check
 npm test
-
-# Serve locally (any static HTTP server works)
 npx serve .
 ```
+
+Open the local URL printed by your server. Your browser needs **WebGL2** and floating-point render-target support for the GPU simulation.
+
+## Code map
+
+| File | Responsibility |
+| --- | --- |
+| [`src/gl.js`](src/gl.js) | WebGL2, textures and framebuffer ping-pong |
+| [`src/shaders.js`](src/shaders.js) | Lenia / NCA / brush / display shaders |
+| [`src/math.js`](src/math.js) | CPU reference, kernels, weight validation |
+| [`src/nca_weights.js`](src/nca_weights.js) | Stored weights for trained NCA presets |
+| [`src/presets.js`](src/presets.js) | Specimens and toroidal seeds |
+| [`src/main.js`](src/main.js) | Simulation control, input and HUD |
+
+**Note:** not every damage event is guaranteed to regenerate; the response depends on specimen, location, amount of damage and parameters. The vector art is a stylized illustration, not a simulation capture.
